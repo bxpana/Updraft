@@ -12,6 +12,8 @@
         - can use `echo $<.env_VARIABLE>` to make sure it's getting it
     - can add .env variable to use with terminal command with `$<.env_VARIABLE>`
 
+---
+
 - For real money you'll use `--interactive` or a keystoree file with a password
 - With `cast` you can do `cast wallet import defaultKey --interactive` to create your keystore with a password
 - `cast wallet list` shows full lists of keystore wallets
@@ -28,6 +30,18 @@
 - clear to the beginning [ctrl] + U
 - `rm .bash_history` to clear command line history
 
+---
+
 - You can see your "runs" in the `broadcast` folder under the contract name and the chain ID
   - give you details about the txn
   - `run-latest.json` will always be the latest run
+
+- `forge fmt` formats the smart contracts
+- `foundryup` to spin up "vanilla" Foundry
+  - `foundryup-zksync` to spin up ZKsync Foundry
+
+## ZKsync Node <> Foundry
+
+- use `forge create` over `forge script` for now
+- `npx zksync-cli dev config` starts CLI with setting up era test node with a block explorer or a portal
+  - make sure to use the space bar to select the portal or block explorer with the era test node
