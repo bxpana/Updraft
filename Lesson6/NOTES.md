@@ -104,6 +104,7 @@
 - `forge test -vv`
   - `-v` is the level of logs shown from `-v` to `-vvvvv`
   - more "v" the more detailed the logs
+      - `-vv` will show `console.log()`s
 - `import {FundMe} from "../src/FundMe.sol";`
   - `..` stands for going down a directory
 
@@ -143,3 +144,22 @@
 
 - `fundMe.MINIMUM_USD()`
   - You can access `fundMe.MINIMUM_USD()` because `MINIMUM_USD` is a public state variable or constant in the `FundMe` contract. Solidity automatically generates a getter function for any public variable, allowing you to access its value through this function.
+
+- `address(this)` gets the Ethereum address of that contract instance
+- `msg.sender` is the address that called the current function
+
+> can use `console.log()` for both of these to find out which addresses they are
+
+## Advanced Deploy Scripts
+
+> [Example](foundry-f23/foundry-fund-me-f23/script/DeployFundMe.s.sol)
+
+```
+vm.startBroadcast();
+  ...
+v,.stopBroadcast();
+```
+
+- tells foundry to start deploy and when to finis the deployment
+
+- `forge clean` will clear the cache of your Foundry files which deletes Build Artificats and removes Cache Files
