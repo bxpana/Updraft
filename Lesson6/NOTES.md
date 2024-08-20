@@ -74,7 +74,8 @@
 - When naming errors, start with contract name and then `__` (double underscores) so you can tell what contract the error came from
 
 ---
-## Tests
+
+### Tests
 
 - importing from `forge-std/Test.sol` gives you the `assert` function
 - `setUp` is always ran before `testDemo` which is why the test below passes
@@ -150,7 +151,7 @@
 
 > can use `console.log()` for both of these to find out which addresses they are
 
-## Advanced Deploy Scripts
+### Advanced Deploy Scripts
 
 > [Example](foundry-f23/foundry-fund-me-f23/script/DeployFundMe.s.sol)
 
@@ -163,3 +164,39 @@ v,.stopBroadcast();
 - tells foundry to start deploy and when to finis the deployment
 
 - `forge clean` will clear the cache of your Foundry files which deletes Build Artificats and removes Cache Files
+
+### More Tests
+
+-  `forge test --mt <test_function>` allows you to test one specific test in your test file
+  - if you don't state which network it will test on an anvil one and close it after
+- `forge coverage --<fork-url or rpc_url> <URL>` shows how many lines of code are actually tested
+  - want this to be in higher % of tested lines (maximize your tests)
+
+#### Unit
+
+- testing a specific part of your code
+  - example (also includes integration because we're checking the version from another contract):
+    ```solidity
+    function testPriceFeedVersionIsAccurate() public {
+          uint256 version = fundMe.getVersion();
+          console.log(version);
+          assertEq(version, 4);
+      }
+    ```
+
+#### Integration
+
+- testing how your code works with other parts of your code
+
+#### Forked
+
+- testing your code on a simulated real environment
+- `forge test --mt testPriceFeedVersionIsAccurate -vvv --fork-url $SEPOLIA_RPC_URL`
+  - spins up an anvil copy of the URL (Sepolia in the above example) and simulate all the txns without having to actually deploy
+- this still makes calls to your RPC URL which could cause increased cost of RPC URL if using a third party like Alchemy
+  - Why?
+    - you're still making calls to the RPC URL to retrieve the latest state data for the simulations
+
+#### Staging
+
+- testing your code in a real environment that is not prod
