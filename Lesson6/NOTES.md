@@ -200,3 +200,41 @@ v,.stopBroadcast();
 #### Staging
 
 - testing your code in a real environment that is not prod
+
+## Making Contracts more Modular
+
+- make contracts open to be able to be deployed on other networks to interact with contracts on those chains
+  - not hardcoding addresses or networks
+- refactor: change up the code architecture but not the functionality. Keeps code maintainable moving forward
+
+> - variables before the constructor are state variables and remain persistent throughout the lifetime of the contract
+> - variables inside the constructor are executed only once at the time of contract deployment
+>   - can set `immutable` variables here since it consumes less gas than setting as state variable
+
+- Example
+  - instead of hard coded address for `AggregatorV3Interface` we can add a variable to the constructor that will setup an instance of the `Aggregator V3Interface` stored in `s_priceFeed` based on the address passed at deployment (the address for the contract on the chain)
+
+    ```solidity
+      contract FundMe {
+    using PriceConverter for uint256;
+
+    mapping(address => uint256) public addressToAmountFunded;
+    address[] public funders;
+
+    // Could we make this constant?  /* hint: no! We should make it immutable! */
+    address public /* immutable */ i_owner;
+    uint256 public constant MINIMUM_USD = 5 * 10 ** 18;
+    AggregatorV3Interface private s_priceFeed;  // <--
+
+    constructor(address priceFeed) {  // <--
+        i_owner = msg.sender;
+        s_priceFeed = AggregatorV3Interface(priceFeed); // <--
+    }
+    ```
+
+    - Checkout [`PriceConverter.sol`](foundry-f23/foundry-fund-me-f23/src/PriceConverter.sol) for changes to make more modular too
+
+- How to make changes to deploy script without having to make changes to test too
+  - Import the contract from deploy script to the test so that it will deploy the same was as in our script
+    - example [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol)
+    - See more notes in [`DeployFundMe.s.sol`](foundry-f23/foundry-fund-me-f23/script/DeployFundMe.s.sol)
