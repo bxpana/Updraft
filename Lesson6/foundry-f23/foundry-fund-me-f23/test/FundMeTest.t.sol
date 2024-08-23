@@ -4,13 +4,16 @@ pragma solidity ^0.8.18;
 
 import {Test, console} from "forge-std/Test.sol";
 import {FundMe} from "../src/FundMe.sol";
+import {DeployFundMe} from "../script/DeployFundMe.s.sol";
 
 contract FundMeTest is Test {
     FundMe fundMe; // declares state variable of type FundMe so that it's accessible by all functions within the FundMeTest contract
 
     function setUp() external {
         // us -> calling to FundMeTest -> deploys FundMe so owner of FundMe is FundMeTest
-        fundMe = new FundMe();
+        //fundMe = new FundMe();
+        DeployFundMe deployFundMe = new DeployFundMe();
+        fundMe = deployFundMe.run(); // Doesn't need a type declared for the fundMe variable since it's defined as a state variable above
     }
 
     function testMinimumDollarIsFive() public {
@@ -21,7 +24,7 @@ contract FundMeTest is Test {
         console.log(fundMe.i_owner());
         console.log(msg.sender);
         console.log(address(this));
-        assertEq(fundMe.i_owner(), address(this));
+        assertEq(fundMe.i_owner(), msg.sender);
     }
 
     function testPriceFeedVersionIsAccurate() public {
