@@ -238,3 +238,57 @@ v,.stopBroadcast();
   - Import the contract from deploy script to the test so that it will deploy the same was as in our script
     - example [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol)
     - See more notes in [`DeployFundMe.s.sol`](foundry-f23/foundry-fund-me-f23/script/DeployFundMe.s.sol)
+
+### Deploy a mock priceFeed
+
+- deploy a mock contract on anvil so you don't have to spend resources on infra provider (Alchemy)
+  - see [`HelperConfig.s.sol`](foundry-f23/foundry-fund-me-f23/script/HelperConfig.s.sol) for examples of how to deploy a mock on anvil chain and keep track of contract addresses when connected to other chains
+    - work with `structs`, `memory`, and `NetworkConfig`
+    - have to import `HelperConfig` in [`DeployFundMe.s.sol`](foundry-f23/foundry-fund-me-f23/script/DeployFundMe.s.sol)
+      - create variable for the price feed based on the `activeNetworkConfig` and deploy the `FundMe` contract passing the address for the priceFeed on the matching network
+    - Anvil setup will be different since the mentioned contracts do not exist on Anvil
+      - have to deploy them ourselves on Anvil
+      1. Deploy the mocks
+      2. Return the mock addresses
+      - can no longer be a `pure` function since we have to use `vm.startBroadcast();` to deploy the mock contracts
+        - also have to change `contract HelperConfig {` to `contract HelperConfig is Script {` so that it can have access to the `vm` keyword
+      - create a `mocks` folder in `test` so that you can separate the mock contracts from the real ones
+- in the AnvilEthConfig add an if statement so that it doesn't redeploy a mock priceFeed contract if there is already and address for `priceFeed`
+
+  ```solidity
+  function getOrCreateAnvilEthConfig() public returns (NetworkConfig memory) {
+        // price feed address
+        if (activeNetworkConfig.priceFeed != address(0)) {
+            // if there was already a priceFeed address for the anvil config, don't run the rest of the code below. If priceFeed address is not 0
+            return activeNetworkConfig;
+        }
+        vm.startBroadcast();
+        ...
+  ```
+
+#### Magic Numbers
+
+- numbers in code that are not defined directly in the code but in another contract
+  - example `8` and `2000e8` refer to the `_decimals` and `_initialAnswer` in [`MockV3Aggregator.sol`](foundry-f23/foundry-fund-me-f23/test/mocks/MockV3Aggregator.sol)
+
+  ```solidity
+  MockV3Aggregator mockPriceFeed = new MockV3Aggregator(8, 2000e8);
+  ```
+
+  - can turn these into constants at the top of the contract
+
+    ```solidity
+    uint8 public constant DECIMALS = 8;
+    int256 public constant INITIAL_PRICE = 2000e8;
+    ```
+
+    - and update:
+
+    ```solidity
+      vm.startBroadcast();
+        MockV3Aggregator mockPriceFeed = new MockV3Aggregator(
+            DECIMALS,
+            INITIAL_PRICE
+        );
+        vm.stopBroadcast();
+    ```

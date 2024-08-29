@@ -16,18 +16,18 @@ contract FundMeTest is Test {
         fundMe = deployFundMe.run(); // Doesn't need a type declared for the fundMe variable since it's defined as a state variable above
     }
 
-    function testMinimumDollarIsFive() public {
+    function testMinimumDollarIsFive() public view {
         assertEq(fundMe.MINIMUM_USD(), 5e18); // to call this we need access to "fundMe"
     }
 
-    function testOwnerIsMsgSender() public {
+    function testOwnerIsMsgSender() public view {
         console.log(fundMe.i_owner());
         console.log(msg.sender);
         console.log(address(this));
         assertEq(fundMe.i_owner(), msg.sender);
     }
 
-    function testPriceFeedVersionIsAccurate() public {
+    function testPriceFeedVersionIsAccurate() public view {
         uint256 version = fundMe.getVersion();
         console.log(version);
         assertEq(version, 4);
