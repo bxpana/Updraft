@@ -292,3 +292,75 @@ v,.stopBroadcast();
         );
         vm.stopBroadcast();
     ```
+
+## Foundry Test Cheat Codes
+
+- <https://book.getfoundry.sh/forge/cheatcodes>
+  - Can also check out <https://book.getfoundry.sh/cheatcodes/> for looking at different cheatcode types
+
+  [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol)
+
+  ```solidity
+  function testFundFailsWithoutEnoughETH() public {
+        vm.expectRevert(); // the next line should revert
+        fundMe.fund(); // fails because nothing is passed through the fund function which requires more than or equal to `MINIMUM_USD`
+    }
+  ```
+
+> In Solidity, when you want to send Ether along with a function call, you use the {value: X} syntax inside the curly braces. This is known as a “function call option” and is used to specify additional parameters for the function call, such as the amount of Ether to send (value), the gas limit (gas), or the sender’s address (from).
+
+[`FundMe.sol`](foundry-f23/foundry-fund-me-f23/src/FundMe.sol)
+
+```solidity
+contract FundMe {
+    using PriceConverter for uint256;
+
+    mapping(address => uint256) public s_addressToAmountFunded; // Keeps track of the amount of funds contributed by each address.
+    address[] public s_funders; // stores the list of all addresses that have contributed funds to the contract.
+...
+```
+
+- For the storage variables, start with `s_` to help make distinctive
+  - default all the storage variables to `private` to make more gas efficient
+    - if need public can signal that for specific ones
+      - create `view` / `pure` functions or "getters" to be able to ask the private storage variables
+
+      [`FundMe.sol`](foundry-f23/foundry-fund-me-f23/src/FundMe.sol)
+
+      ```solidity
+      function getAddressToAmountFunded(
+        address fundingAddress
+      )   external view returns (uint256) {
+            return s_addressToAmountFunded[fundingAddress];
+      }
+      ```
+
+- `prank` sets the `msg.sender` to the specified address for the next call
+  - use to know who is sending the call instead of not knowing if it's `msg.sender` or `fundMe` (`address(this)`)
+
+- `makeAddr` makes a new address based on a name passed
+  - added to top of [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol) so you can use it throughout the tests
+
+> Use `prank` after setting `makeAddr` see [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol)
+
+  ```solidity
+  address USER = makeAddr("user");
+  ...
+  function testFundUpdatesFundedDataStructure() public {
+        vm.prank(USER);
+        ...
+  ```
+
+- `deal` set the balance of an address
+  - set a constant variable with an amount
+
+  ```solidity
+  uint256 constant STARTIN_BALANCE = 10 ether;
+  ```
+
+  - in the `setUp` function add deal with `vm`
+
+  ```solidity
+  vm.deal(USER, STARTING_BALANCE);
+  ```
+
