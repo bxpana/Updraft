@@ -302,7 +302,7 @@ v,.stopBroadcast();
 
   ```solidity
   function testFundFailsWithoutEnoughETH() public {
-        vm.expectRevert(); // the next line should revert
+        vm.expectRevert(); // the next line should revert // ignores `vm.` for example when setting a `prank` address
         fundMe.fund(); // fails because nothing is passed through the fund function which requires more than or equal to `MINIMUM_USD`
     }
   ```
@@ -338,17 +338,27 @@ contract FundMe {
 - `prank` sets the `msg.sender` to the specified address for the next call
   - use to know who is sending the call instead of not knowing if it's `msg.sender` or `fundMe` (`address(this)`)
 
+> Use `prank` after setting `makeAddr` see [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol)
+
 - `makeAddr` makes a new address based on a name passed
   - added to top of [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol) so you can use it throughout the tests
 
-> Use `prank` after setting `makeAddr` see [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol)
+    ```solidity
+    address USER = makeAddr("user");
+    ...
+    function testFundUpdatesFundedDataStructure() public {
+    vm.prank(USER);
+    ...
+    ```
+
+- `vm.startPrank`/`vm.stopPrank`
+  - same as `vm.startBroadcast` where you run everything within the vm
+  - example:
 
   ```solidity
-  address USER = makeAddr("user");
-  ...
-  function testFundUpdatesFundedDataStructure() public {
-        vm.prank(USER);
-        ...
+  vm.startPrank(fundMe.getOwner());
+  fundMe.withdraw();
+  vm.stopPrank();
   ```
 
 - `deal` set the balance of an address
@@ -364,3 +374,59 @@ contract FundMe {
   vm.deal(USER, STARTING_BALANCE);
   ```
 
+- `modifier` allows you to create a state that can be used in other tests so you don't have to continue to enter the same cheatcodes
+  - `modifier` needs a `_;` at the end to signal where the code is executed after it. If the _ is omitted, the function body never gets executed, and only the modifier’s logic will run.
+  - example:
+
+  ```solidity
+  modifier funded() {
+        vm.prank(USER);
+        fundMe.fund{value: SEND_VALUE}();
+        _;
+    }
+  ````
+
+  - add `modifier` to function in test:
+
+  ```solidity
+  function testOnlyOwnerCanWithdraw() public funded {
+        vm.expectRevert();
+        vm.prank(USER);
+        fundMe.withdraw();
+    }
+  ```
+
+> Fun fact:
+>
+> - (): Used to pass parameters defined in the function’s signature (e.g., uint256 amount).
+> - {}: Used to pass optional transaction parameters like Ether (value), gas (gas), or sender (from), which are outside the function signature.
+
+### Arrange, Act, Assert
+
+Way to think about setting up a test
+
+1. **Arrange** the test
+2. Do the **action** you want to test
+3. **Assert** the test
+
+- see `testWithdrawWithASingleFunder` function in [`FundMeTest.t.sol`](foundry-f23/foundry-fund-me-f23/test/FundMeTest.t.sol) for example of arrange, act, assert
+
+- `hoax`
+  - sets up a `prank` from an address that has some ether
+    - puts `prank` and `deal` together
+  - `hoax(<ADDRESS>, SEND_VALUE);`
+  - when setting up addresses with `address(NUMBER)` you'll need to wrap it in a `uint160` instead of 256
+    - example:
+
+    ```solidity
+    function testWithdrawFromMultipleFunders() public funded {
+        uint256 numberOfFunders = 10; => uint160 numberOfFunders = 10;
+        uint256 startingFunderIndex = 2; => uint160 startingFunderIndex = 2;
+        for (uint160 i = startingFunderIndex; i < numberOfFunders; i++) {}
+    }
+    ```
+
+- `assert` and `assertEq`
+  - `assertEq` provides more detailed error messages, including the expected and actual values, which can be extremely useful when troubleshooting.
+    - `assertEq` is generally preferred in test cases because of the additional information it provides when the test fails, making it easier identify the issue.
+  - `assert` only checks a condition but doesn’t provide as much detail on failure beyond the fact that the condition was false.
