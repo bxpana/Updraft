@@ -12,6 +12,7 @@ contract FundMeTest is Test {
     address USER = makeAddr("user");
     uint256 constant SEND_VALUE = 0.1 ether;
     uint256 constant STARTING_BALANCE = 10 ether;
+    uint256 constant GAS_PRICE = 1;
 
     function setUp() external {
         // us -> calling to FundMeTest -> deploys FundMe so owner of FundMe is FundMeTest
@@ -103,7 +104,6 @@ contract FundMeTest is Test {
         uint256 startingFundMeBalance = address(fundMe).balance;
 
         // Act
-
         vm.startPrank(fundMe.getOwner());
         fundMe.withdraw();
         vm.stopPrank();

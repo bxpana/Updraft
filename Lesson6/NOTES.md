@@ -401,6 +401,8 @@ contract FundMe {
 > - (): Used to pass parameters defined in the function’s signature (e.g., uint256 amount).
 > - {}: Used to pass optional transaction parameters like Ether (value), gas (gas), or sender (from), which are outside the function signature.
 
+- `txGasPrice` sets the tx.gasprice for the rest of hte txn
+
 ### Arrange, Act, Assert
 
 Way to think about setting up a test
@@ -430,3 +432,72 @@ Way to think about setting up a test
   - `assertEq` provides more detailed error messages, including the expected and actual values, which can be extremely useful when troubleshooting.
     - `assertEq` is generally preferred in test cases because of the additional information it provides when the test fails, making it easier identify the issue.
   - `assert` only checks a condition but doesn’t provide as much detail on failure beyond the fact that the condition was false.
+
+## Chisel
+
+Let's you write in solidity in the terminal and execute it line by line
+
+```bash
+chisel 
+```
+
+## Storage Optimization
+
+- How the contract stores things like the state variables (aka storage
+  variables)
+  - <https://docs.soliditylang.org/en/latest/internals/layout_in_storage.html>
+- Global or state variables that stay permanent, they are stuck in storage
+  > Think of storage as a giant array or list of variables that we create
+
+- each variable is stored in a "slot" and each slot is 32 bytes long,
+  representing the bytes version of the object
+
+Example:
+
+```solidity
+contract FunWithStorage {
+  uint256 favoriteNumber;
+
+  constructor() {
+    favoriteNumber = 25;
+  }
+}
+```
+
+The uint256 25 is stored in the first slot (slot 0) and represented in hex as
+0x000...0019
+
+```solidity
+contract FunWithStorage {
+  uint256 favoriteNumber;
+  bool someBool;
+
+  constructor() {
+    favoriteNumber = 25;
+    someBool = true;
+  }
+}
+```
+
+For a "true" boolean, it would be 0x000...001 in hex
+
+```solidity
+contract FunWithStorage {
+  uint256 favoriteNumber;
+  bool someBool;
+  uint256[] myArray;
+
+  constructor() {
+    favoriteNumber = 25;
+    someBool = true;
+    myArray.push(222);
+  }
+}
+```
+
+For dynamic values like mappings and dynamic arrays, the elements are stored
+using a hashing function (see solidity dos for more details).
+  - For arrays, a sequential storage spot is taken up for the length of the
+    array
+  - For mappings, a sequential storage spot is taken up, but left blank and
+    solidity will know what to do with it
