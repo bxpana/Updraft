@@ -501,3 +501,12 @@ using a hashing function (see solidity dos for more details).
     array
   - For mappings, a sequential storage spot is taken up, but left blank and
     solidity will know what to do with it
+
+Constant and immutable variables do not take up slots in storage because they
+are part of the contracts bytecode
+  - variables within a function only last for the duration of the function and
+    do not persist
+      - they get added in their own memory structure that gets deleted after
+
+`forge <CONTRACT_NAME> storageLayout` will show the storage layout of the
+contract to see what variables are stored at what storage slots
