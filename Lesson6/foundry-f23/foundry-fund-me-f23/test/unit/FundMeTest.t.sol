@@ -3,8 +3,8 @@
 pragma solidity ^0.8.18;
 
 import {Test, console} from "forge-std/Test.sol";
-import {FundMe} from "../src/FundMe.sol";
-import {DeployFundMe} from "../script/DeployFundMe.s.sol";
+import {FundMe} from "../../src/FundMe.sol";
+import {DeployFundMe} from "../../script/DeployFundMe.s.sol";
 
 contract FundMeTest is Test {
     FundMe fundMe; // declares state variable of type FundMe so that it's accessible by all functions within the FundMeTest contract
@@ -91,6 +91,36 @@ contract FundMeTest is Test {
         );
     }
 
+    function testWithdrawFromMultipleFundersCheaper() public funded {
+        // Arrange
+        uint160 numberOfFunders = 10;
+        uint160 startingFunderIndex = 1; // start index above 0 because there are typically sanity checks to make sure you aren't sending to the 0 address that could cause this test to fail
+        for (uint160 i = startingFunderIndex; i < numberOfFunders; i++) {
+            hoax(address(i), SEND_VALUE);
+            fundMe.fund{value: SEND_VALUE}();
+        }
+
+        uint256 startingOwnerBalance = fundMe.getOwner().balance;
+        uint256 startingFundMeBalance = address(fundMe).balance;
+
+        // Act
+        vm.startPrank(fundMe.getOwner());
+        fundMe.cheaperWithdraw();
+        vm.stopPrank();
+
+        // Assert
+        assertEq(address(fundMe).balance, 0);
+        assertEq(
+            startingFundMeBalance + startingOwnerBalance,
+            fundMe.getOwner().balance
+        );
+        /*
+        assert(address(fundMe).balance == 0);
+        assert(
+            startingFundMeBalance + startingOwnerBalance ==
+                fundMe.getOwner().balance
+        );*/
+    }
     function testWithdrawFromMultipleFunders() public funded {
         // Arrange
         uint160 numberOfFunders = 10;

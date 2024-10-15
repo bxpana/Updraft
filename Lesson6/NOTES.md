@@ -510,3 +510,93 @@ are part of the contracts bytecode
 
 `forge <CONTRACT_NAME> storageLayout` will show the storage layout of the
 contract to see what variables are stored at what storage slots
+
+"object" in bytecode is the contract in pure bytecode
+"opcodes" show the used opcodes in the contract. The actual things that our
+contract should do. 
+- Each opcode has a gas cost for it
+  - <https://www.evm.codes/> for list of opcodes and their costs
+  > ex. `SLOAD` is 100 gas. Anytime you read from storage it's 100 gas! `MLOAD`
+  > is 3 gas so we can save on gas by using Memory
+
+### Comparison of `cheaperWithdraw` and `withdraw` Functions
+
+| **`cheaperWithdraw`**                                                                                                                                                  | **`withdraw`**                                                                                                                                                      |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ```solidity<br>function cheaperWithdraw() public onlyOwner {<br>&nbsp;&nbsp;&nbsp;uint256 fundersLength = s_funders.length;<br>&nbsp;&nbsp;&nbsp;for (uint256 funderIndex = 0; funderIndex < fundersLength; funderIndex++) {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;address funder = s_funders;<br>&nbsp;&nbsp;&nbsp;(bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");<br>&nbsp;&nbsp;&nbsp;require(callSuccess, "Call failed");<br>}``` | ```solidity<br>function withdraw() public onlyOwner {<br>&nbsp;&nbsp;&nbsp;for (uint256 funderIndex = 0; funderIndex < s_funders.length; funderIndex++) {<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;address funder = s_funders;<br>&nbsp;&nbsp;&nbsp;(bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");<br>&nbsp;&nbsp;&nbsp;require(callSuccess, "Call failed");<br>}``` |
+
+### Line-by-Line Comparison
+
+| **Line** | **`cheaperWithdraw`**                                                                             | **`withdraw`**                                                                                  |
+|----------|----------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| 1        | `function cheaperWithdraw() public onlyOwner {`                                                    | `function withdraw() public onlyOwner {`                                                        |
+| 2        | &nbsp;&nbsp;&nbsp;`uint256 fundersLength = s_funders.length;`                                      | *(Line not present)*                                                                            |
+| 3        | &nbsp;&nbsp;&nbsp;`for (uint256 funderIndex = 0; funderIndex < fundersLength; funderIndex++) {`    | &nbsp;&nbsp;&nbsp;`for (uint256 funderIndex = 0; funderIndex < s_funders.length; funderIndex++) {` |
+| 4        | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`address funder = s_funders[funderIndex];`                     | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`address funder = s_funders[funderIndex];`                 |
+| 5        | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`s_addressToAmountFunded[funder] = 0;`                         | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;`s_addressToAmountFunded[funder] = 0;`                     |
+| 6        | &nbsp;&nbsp;&nbsp;`}`                                                                              | &nbsp;&nbsp;&nbsp;`}`                                                                           |
+| 7        | &nbsp;&nbsp;&nbsp;`s_funders = new address;`                                                  | &nbsp;&nbsp;&nbsp;`s_funders = new address;`                                              |
+| 8        | &nbsp;&nbsp;&nbsp;`(bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");` | &nbsp;&nbsp;&nbsp;`(bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");` |
+| 9        | &nbsp;&nbsp;&nbsp;`require(callSuccess, "Call failed");`                                           | &nbsp;&nbsp;&nbsp;`require(callSuccess, "Call failed");`                                       |
+| 10       | `}`                                                                                                | `}`                                                                                            |
+
+### Key Differences
+
+- **Line 2 (`cheaperWithdraw` only):**
+  - `cheaperWithdraw` declares a local variable `fundersLength` to store the length of `s_funders`.
+- **Line 3 (Loop Condition):**
+  - `cheaperWithdraw` uses `fundersLength` in the loop condition.
+  - `withdraw` accesses `s_funders.length` directly in the loop condition.
+
+### Explanation
+
+- **Optimization in `cheaperWithdraw`:**
+  - **Storage Reads vs. Memory Reads:**
+    - Accessing storage variables like `s_funders.length` is more gas-intensive than accessing memory variables.
+    - By storing `s_funders.length` in a local memory variable `fundersLength`, the function reduces the number of storage reads.
+  - **Gas Efficiency:**
+    - This change makes `cheaperWithdraw` more gas-efficient, especially for loops with many iterations.
+- **Standard Approach in `withdraw`:**
+  - The `withdraw` function reads `s_funders.length` from storage during each loop iteration.
+  - This approach is less gas-efficient due to multiple storage reads.
+
+[Solidity Style Guide](https://docs.soliditylang.org/en/v0.8.4/style-guide.html)
+for code layout to be more readable.
+
+- use `s_` for variables stored in storage
+- use `i_` for immutable variables
+- use all caps for `CONSTANTS`
+
+README
+
+- explain what codes does and how to do it
+
+Integration Tests
+
+- [`Interactions.s.sol`](foundry-f23/foundry-fund-me-f23/script/Interactions.s.sol)
+  have all the ways to interact with our contract
+
+- install Foundry devops for tools to use with foundry such as a script that
+  grabs the most recent deployment of a contract to test integrations
+    - `forge install Cyfrin/foundry-devops --no-commit`
+    - You can then import it in the `Interactions.s.sol` contract but need to
+      set `ffi = true` in your `foundry.toml` file
+      > You don't always want to use this as it let's foundry run commands
+      > directly on your machine
+
+    - `DevOpsTools.get_most_recent_deployment` can be used to get the most
+      recent deployment address so you don't have to manually add the contract
+      address you want to interact with every time
+      - looks inside the `broadcast` folder in the `run-latest.json` and grabs
+        the most recently deployed contract in that file
+
+- Split Integration tests and Unit tests into different folders to keep track
+  - `Interactions.s.sol` is for testing the main functions of my contract
+  - `FundMeTest.t.sol` for testing different parts of the contract
+
+Makefiles
+
+- allow you to create shortcuts for commands we are going to commonly use
+- add a `Makefile` in your project
+- allows you to automatically grab from variables from `.env` without having to
+  run `source .env`
