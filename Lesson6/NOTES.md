@@ -567,11 +567,11 @@ for code layout to be more readable.
 - use `i_` for immutable variables
 - use all caps for `CONSTANTS`
 
-README
+## README
 
 - explain what codes does and how to do it
 
-Integration Tests
+## Integration Tests
 
 - [`Interactions.s.sol`](foundry-f23/foundry-fund-me-f23/script/Interactions.s.sol)
   have all the ways to interact with our contract
@@ -594,9 +594,20 @@ Integration Tests
   - `Interactions.s.sol` is for testing the main functions of my contract
   - `FundMeTest.t.sol` for testing different parts of the contract
 
-Makefiles
+## Makefiles
 
 - allow you to create shortcuts for commands we are going to commonly use
 - add a `Makefile` in your project
 - allows you to automatically grab from variables from `.env` without having to
   run `source .env`
+- need to add () around your environment variables
+  - `$(PRIVATE_KEY)
+    - see [`Makefile`](foundry-f23/foundry-fund-me-f23/Makefile) for example
+    - can also use the
+      [`Makefile`](https://github.com/Cyfrin/foundry-fund-me-cu/blob/main/Makefile)
+      that is part of the Cyfrin repo for more shortcuts you can use
+
+## ZKsync Devops
+
+`ZksyncDevOps.t.sol` used to test things that will work on vanilla Foundry, but
+not on ZKsync Foundry and vice-versa

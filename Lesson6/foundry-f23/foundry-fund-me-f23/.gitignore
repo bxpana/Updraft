@@ -15,3 +15,6 @@ docs/
 
 # Password file
 .password
+
+.DS_Store
+zkout/
