@@ -616,4 +616,10 @@ not on ZKsync Foundry and vice-versa
 
 `ZkSyncChainChecker` to run tests only on ZKsync Era or on other EVM chains
 
-Can learn more [here](https://github.com/Cyfrin/foundry-devops?tab=readme-ov-file#usage---zksync-checker).
+Can learn more
+[here](https://github.com/Cyfrin/foundry-devops?tab=readme-ov-file#usage---zksync-checker).
+
+## Pushing to Github
+
+In your `.gitignore` file you can do `<FILE_NAME>/` to prevent it from being
+pushed publicly 
