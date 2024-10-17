@@ -611,3 +611,9 @@ for code layout to be more readable.
 
 `ZksyncDevOps.t.sol` used to test things that will work on vanilla Foundry, but
 not on ZKsync Foundry and vice-versa
+
+`FoundryZkSyncChecker` to run test on either foundry-zksync or vanilla foundry
+
+`ZkSyncChainChecker` to run tests only on ZKsync Era or on other EVM chains
+
+Can learn more [here](https://github.com/Cyfrin/foundry-devops?tab=readme-ov-file#usage---zksync-checker).
