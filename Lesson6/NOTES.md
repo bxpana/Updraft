@@ -623,3 +623,8 @@ Can learn more
 
 In your `.gitignore` file you can do `<FILE_NAME>/` to prevent it from being
 pushed publicly 
+
+`git push origin main` pushes the commits to the repo on the main branch
+  
+  - can do `git remote -v` to see what the origin is
+
