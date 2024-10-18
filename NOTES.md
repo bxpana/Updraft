@@ -1,4 +1,30 @@
-# Lesson 6
+# Solidity Smart Contract Development
+
+## Deploying contracts using `new` keyword
+
+- deploy contracts from other contract using `new`
+
+## Importing from other contracts
+
+- `import "./myOtherContract.sol";`
+
+## Named Imports
+
+- name the contract being imported to be more ogranized
+ - `import { Contract as MyContract } from "./myOtherContract.sol";`
+
+ ## Interacting with contracts
+
+- interact with other contracts as long as we have the ABI and contract's address
+ 
+ ## Contract Inheritance
+
+- Can create a "child" contract that inherits the features of another contract. 
+- Import the parent contract and use the `is` keyword
+ - to override a function of the parent contract you use the `override` keyword in the child contract and need to use the `virtual` keyword on the function in the parent contract
+  - see SimpleStorage.sol and AddFiveStorage.sol store function for example
+
+# Foundry Fundamentals
 
 ## Foundry Simple Storage
 
@@ -626,5 +652,30 @@ pushed publicly
 
 `git push origin main` pushes the commits to the repo on the main branch
   
-  - can do `git remote -v` to see what the origin is
+- can do `git remote -v` to see what the origin is
 
+# Fund Me Frontend
+
+Better understanding how wallets are interacting with the frontend and making
+sure you're signing what you're supposed to sign 
+
+- Can use Liver Server extension to "Go Live" and have VS Code or Cursor host
+  the website
+
+The Console is a live javascript shell which has a lot of info about the browser
+we're working with
+
+- Metamask injects into the javascript shell in the `window` object
+  - specifically it injects `window.ethereum` into the browser and this is how
+    the website sends transactions to our wallet
+
+- `index.js` will show the code that a website will use to interact with the
+  wallet
+  - the `async function connect()` has a check to see if the `window.ethereum`
+    object is available and if it is then an `ethereum.request` to connect to
+    one of the accounts in the wallet
+
+"getBalance" button
+
+- checks that metamask is there with the check of `window.ethereum`
+- ethers package makes it easy to interact and work with wallets/MM
