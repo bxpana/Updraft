@@ -679,3 +679,37 @@ we're working with
 
 - checks that metamask is there with the check of `window.ethereum`
 - ethers package makes it easy to interact and work with wallets/MM
+- when we click the "getBalance" button it's making an API call via the RPC url
+  in the wallet
+
+"fund" button
+
+- gets the `ethAmount` from the frontend input box
+- checks to make sure there is a wallet connected with `window.ethereum`
+- gets the rpc url using ethers and calls the provider from the wallet
+- `signer` gets the signer object associated with the account to sign the txn
+- `contract` uses ethers to get the deployed address of the contract from the
+  `constants.js` file (`abi` also comes from here)
+    - REMINDER: You need the `contract address`, `abi`, and `signer` to interact
+      with contracts
+- transaction:
+
+```javascript
+const transactionResponse = await contract.fund(2, "0x0000000000000000000000000000000000000000", {
+        value: ethers.parseEther(ethAmount),
+```
+
+  - creating the txn using javascript and sending to our wallet to sign
+    - allows the private key to remain in wallet and not be exposed to the
+      website
+
+> `await` is used since txns are asynchronous and makes sure to wait for the
+> first part of the function to be executed before moving on to the next
+
+- `cast sig "<function>"()` will reveal the function selector (low level EVM
+  stuff)
+- `cast --calldata-decode "<function>(inputs)" <CALLDATA>` will decode the
+  calldata
+
+# Smart Contract Lottery
+
