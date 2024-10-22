@@ -81,7 +81,7 @@ contract FundMe {
     //  /        \
     //receive()  fallback()
 
-    /*fallback() external payable {
+    fallback() external payable {
         fund();
     }
 
