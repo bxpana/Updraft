@@ -713,3 +713,50 @@ const transactionResponse = await contract.fund(2, "0x00000000000000000000000000
 
 # Smart Contract Lottery
 
+## Solidity Style Guide
+
+[Solidity Style Guide](https://docs.soliditylang.org/en/v0.8.4/style-guide.html)
+
+Order of Layout
+
+1. Pragma statements
+2. Import statements
+3. Interfaces
+4. Libraries
+5. Contracts
+
+Inside of each contract, library or interface, use the following order:
+
+1. Type declarations
+2. State variables
+3. Events
+4. Modifiers
+5. Functions
+
+Order of Functions
+
+1. constructor
+2. receive function (if exists)
+3. fallback function (if exists)
+4. external
+5. public
+6. internal
+7. private
+Within a grouping, place the `view` and `pure` functions last
+
+Helpful to add this at the top of contracts to remember the layout. See
+[`Raffle.sol`](Lesson6/foundry-f23/foundry-smart-contract-lottery/src/Raffle.sol)
+for an example.
+
+## Creating Custom Errors
+
+As of Solidity v0.8.4 there is a new thing called custom errors so you don't
+have to store the errors as a string which is more expensive
+
+> Command + / will comment out a full line 
+
+As of Solidity v0.8.26 can add custom errors inside `require` but requires
+compiling with Via IR that we'll get into more later and still is not as gas
+efficient as using `if`
+
+FIGURE OUT HOW TO ENTER TABLE HERE WITH CODE
