@@ -46,7 +46,7 @@ contract Raffle {
         if(msg.value < i_entranceFee) {
             revert Raffle__NotEnoughEthToEnterRaffle();
         }
-        
+        s_players.push(payable(msg.sender));
     }
 
     function pickWinner() public {}
