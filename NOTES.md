@@ -759,4 +759,71 @@ As of Solidity v0.8.26 can add custom errors inside `require` but requires
 compiling with Via IR that we'll get into more later and still is not as gas
 efficient as using `if`
 
-FIGURE OUT HOW TO ENTER TABLE HERE WITH CODE
+**Version 1**
+
+```solidity
+function enterRaffle() public payable {
+    require(msg.value >= i_entranceFee, "Not enough ETH to enter the raffle");
+} 
+```
+
+- Explanation: Uses require with a string error message. This is more
+  gas-intensive because the string is stored in the contract’s bytecode,
+  increasing deployment and runtime costs.
+
+**Version 2**
+
+```solidity
+function enterRaffle() public payable {
+    require(msg.value >= i_entranceFee, NotEnoughEthToEnterRaffle());
+}
+```
+
+- Explanation: Uses require with a custom error. As of Solidity v0.8.26, require statements can accept custom errors. This saves gas by avoiding string literals but requires a newer compiler version.
+
+**Version 3**
+
+```solidity
+function enterRaffle() public payable {
+    if (msg.value < i_entranceFee) {
+        revert NotEnoughEthToEnterRaffle();
+    }
+}
+```
+
+- Explanation: Uses an if statement with revert and a custom error. Available
+  since Solidity v0.8.4, this approach is more gas-efficient because it avoids
+  storing string literals and has less overhead than using require.
+
+It can get confusing on where the error is coming from if you have multiple
+contracts so best practice is to use the contract name as a prefix with double
+underscore after
+
+- `Raffle__NotEnoughEthToEnterRaffle();`
+  - this is a `NotEnoughEthToEnterRaffle` error coming from the `Raffle`
+    contract
+  
+## Smart contract events
+
+`address payable[] private s_players;` is the syntax for making an address array
+payable so that you can pay out the winner of the lottery
+
+- each time someone enters the raffle we can do
+  `s_players.push(payable(msg.sender));` to push that address to the array
+
+- address payable is essential for any address that will receive Ether.
+- Explicit Conversion: Using payable(msg.sender) ensures that the address is correctly cast to a payable type, aligning with Solidity’s type safety.
+- Future-Proofing: Storing addresses as payable prepares your contract for any
+  future functions that may require sending Ether to these addresses.
+
+Why Solidity Still Requires address payable:
+
+1. Type System Enforcement:
+
+    - No Assumptions: Solidity does not assume that every address is payable, even if it’s an EOA.
+    - Explicit Declaration: This enforces intentionality in your code, ensuring that you explicitly handle Ether transfers.
+
+2. Preventing Accidental Transfers:
+
+    - Non-Payable Addresses: Using non-payable address types prevents developers from accidentally transferring Ether to unintended recipients.
+    - Intentional Casting: Developers must intentionally cast an address to address payable when they mean to transfer Ether, adding a layer of intentionality and reducing potential bugs.
