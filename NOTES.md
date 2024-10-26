@@ -826,4 +826,64 @@ Why Solidity Still Requires address payable:
 2. Preventing Accidental Transfers:
 
     - Non-Payable Addresses: Using non-payable address types prevents developers from accidentally transferring Ether to unintended recipients.
-    - Intentional Casting: Developers must intentionally cast an address to address payable when they mean to transfer Ether, adding a layer of intentionality and reducing potential bugs.
+    - Intentional Casting: Developers must intentionally cast an address to
+      address payable when they mean to transfer Ether, adding a layer of
+      intentionality and reducing potential bugs.
+    
+> Rule of thumb to follow whenever we make updates to storage, emit an event
+
+Why events?
+
+1. Makes migration easier
+2. Makes front end "indexing" easier
+
+EVM can emit logs and inside logs are events
+
+  - events allow you to print to the logging structure to save on gas
+  - BUT events cannot be read by smart contracts, hence the gas savings
+
+**Chainlink** nodes are listening for request data events on what information it
+needs to provide
+**The Graph** is listening for events and indexes them to be queried later
+
+example:
+
+```solidity
+event storedNumber(
+        uint256 indexed oldNumber,
+        uint256 indexed newNumber.
+        uint256 addedNumber,
+        address sender
+);
+```
+
+- `indexed` and `nonindexed` parameters when you emit events
+  - you can have up to 3 `indexed` parameters, also referred to as Topics, are
+    searchable and easier to search for than non-indexed parameters
+
+To emit an event you can do:
+
+```solidity
+emit storedNumber(
+            favoriteNumber,
+            _favoriteNumber,
+            _favvoriteNumber + favoriteNumber,
+            msg.sender
+);
+```
+
+To read the logs on a block explorer like Etherscan
+
+- Address
+  - the address of the contract or account the event is emitted from
+- Topics
+  - the indexed parameters of the event
+- Data
+  - The ABI encoded non-indexed parameters of the event
+    - This means we took the non-indexed parameters mashed them together with
+      their ABI and "pumped" them through an encoding algorithm
+    - If you have the ABI it's easy to decode
+    - costs less gas to add to the EVM log
+
+## Random numbers - Block Timestamp
+
