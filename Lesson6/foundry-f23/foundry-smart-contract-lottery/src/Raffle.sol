@@ -33,16 +33,21 @@ contract Raffle {
     error Raffle__NotEnoughEthToEnterRaffle();
 
     uint256 private immutable i_entranceFee;
+    // @dev The duration of the lottery in seconds
+    uint256 private immutable i_interval;
     address payable[] private s_players;
+    uint256 private s_lastTimeStamp;
 
     /** Events */
     event RaffleEnter(address indexed player);
 
-    constructor(uint256 entranceFee) {
+    constructor(uint256 entranceFee, uint256 interval) {
         i_entranceFee = entranceFee;
+        i_interval = interval;
+        s_lastTimeStamp = block.timestamp;
     }
 
-    function enterRaffle() public payable{
+    function enterRaffle() external payable{
         // require(msg.value >= i_entranceFee, "Not enough ETH to enter the
         // raffle");
         // require(msg.value >= i_entranceFee, NotEnoughEthToEnterRaffle());
@@ -53,7 +58,16 @@ contract Raffle {
         emit RaffleEnter(msg.sender);
     }
 
-    function pickWinner() public {}
+    // 1. Pick a random winner
+    // 2. Use randon number to select a winner
+    // 3. Be automatically called
+    function pickWinner() external {
+        // check to see if enough time has passed
+        if((block.timestamp - s_lastTimeStamp) < i_interval) {
+            revert();
+        }
+        // Get a random number from Chainlink VRF 2.5
+    }
 
     /**Getter Functions */
     function getEntranceFee() external view returns(uint256) {

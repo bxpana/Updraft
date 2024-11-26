@@ -829,7 +829,7 @@ Why Solidity Still Requires address payable:
     - Intentional Casting: Developers must intentionally cast an address to
       address payable when they mean to transfer Ether, adding a layer of
       intentionality and reducing potential bugs.
-    
+
 > Rule of thumb to follow whenever we make updates to storage, emit an event
 
 Why events?
@@ -887,3 +887,15 @@ To read the logs on a block explorer like Etherscan
 
 ## Random numbers - Block Timestamp
 
+Globally available unit
+
+- current approximate time according to the blockchain
+
+Example of using `block.timestamp` to see if enough time has passed
+
+```solidity
+block.timestamp - s_lastTimeStamp > i_interval;
+```
+
+Can set `block.timestamp` in the constructor to have the timestamp be taken as
+soon as the contract is created
