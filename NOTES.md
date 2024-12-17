@@ -899,3 +899,476 @@ block.timestamp - s_lastTimeStamp > i_interval;
 
 Can set `block.timestamp` in the constructor to have the timestamp be taken as
 soon as the contract is created
+
+## Random numbers - Introduction to Chainlink VRF
+
+Subscription used for requesting a random number
+
+1. Need to create subscription
+2. Add funds to your subscription (uses LINK)
+3. Add consumers
+  
+  - need to let subscription know about the contracts you are deploying and when
+    you deploy your contract you need to let it know about your subscription
+      - Use Subscription ID
+
+`VRFCoordinatorV2Interface.sol` used to reach out to the oracle network to get
+the random values
+
+`keyHash` specifies the gas lane to use which is going to be the premium we are
+willing to pay to get faster responses
+
+> How VRF works
+> 1. makes a request to oracle network
+> 2. oracle network generates random numbers
+> 3. sends random numbers back to the contract
+> 4. when it comes back you need to do something with the numbers as soon as
+>    they are returned, they are stored and then become public
+
+`callbackGasLimit` max amount of gas that is available to be used in the callback function
+
+- callback function  <<<<Look this up, is it the request to the oracle network (the process mentioned above?)>>>>>>>>
+
+`requestConfirmations` are the number of block confirmations to pass before
+returning the random numbers
+
+`numWords` in comp sci is the correct term for what is being returned (we say
+random numbers). You can declare the number of "words"/randon numbers are
+returned with your request, meaning you can get multiple randon numbers in a
+single transaction
+
+`function fulfillRandomWords` is the function where you do things with the random values
+
+- example: assigning random traits to an NFT
+
+`function getRequestStatus` allows you to see what is going on with the request
+
+## Implement the Chainlink VRF
+
+1. Subscription
+
+- a little more scalable, since you only have to fund this contract vs having
+    to fund ever raffle contract that is deployed
+- have a singular subscription contract where you send funds (LINK)
+
+2. Direct funding
+
+- directly fund the contract implementing VRF
+  - example would be if we were to directly fund the `Raffle.sol` contract
+
+**Setup contract to programmatically get random number**
+
+- if you inherit from a contract with a `constructor` you need to add that
+  `constructor` to your contract
+- `VRFConsumerBaseV2Plus.sol` has storage variable `s_vrfCoordinator` and since
+  we are inheriting, the `Raffle.sol` contract also has access to it
+- The `RandomWordsRequest` is a struct from the `VRFV2PlusClient.sol` so when
+  working with a struct you do
+  `NAME_OF_CONTRACT.NAME_OF_STRUCT({STRUCT_INPUTS})`
+
+```solidity
+VRFV2PlusClient.RandomWordsRequest({
+                keyHash: s_keyHash,
+                subId: s_subscriptionId,
+                requestConfirmations: requestConfirmations,
+                callbackGasLimit: callbackGasLimit,
+                numWords: numWords,
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    // Set nativePayment to true to pay for VRF requests with Sepolia ETH instead of LINK
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: false})
+                )
+            })
+```
+
+
+
+
+# Advanced Foundry
+
+## Airdrop and Signatures
+
+### Merkle Proofs
+
+Merkle trees are a data structure in computer science
+
+- used to encrypt blockchain data more efficiently
+- structure
+  - base: leafs or leaf nodes of the tree that contain has of some data
+  - top: root or root hash created by hashing all the individual nodes together
+    as leave node hashes
+
+Merkle proof is a way to prove that some data is in one of those leaves to
+someone who only knows the root hash
+
+- for a successful merkle proof you need to provide all sibling nodes at every
+  tree level
+
+### Signature Standards
+
+EIP-191 and EIP-712; verifying signatures in contracts
+
+**Why do we need them?**
+
+- provides more human readable txn messages
+- EIP-712 helps prevent replay attacks
+- EIP-191 allows for sponsored txns (send txns on behalf of a user given their
+  signature)
+  - `0x19<1 byte version><version specific data><data to sign>`
+    - `0x19` signals that it's a signature
+    - <1 byte version> version that the signed data is using
+      - 0x00: data with intended validator
+      - 0x01: structured data (mostly used with EIP-712)
+      - 0x45: personal_sign messages
+    - <version specific data> data associated with the version and specified
+    - <data to sign> data we intend to sign
+
+    ```solidity
+    function getSigner191(uint256 message, uint8 _v, bytes32 _r, bytes32 _s) public view retunrs (address) {}
+
+    bytes1 prefix = bytes1(0x19);
+    bytes1 eip191Version = bytes1(0);
+    address intendedValidatorAddress = address(this);
+    bytes32 applicationSpecificData = bytes32(message);
+
+    // ABI encode the data to get a hashed message
+    bytes32 hashedMessage = keccak256(abi.encodePacked(prefix, eip191Version, intendedValidatorAddress, applicationSpecificData));
+
+    // use ecrecover precompile with the hashed message and the signature to recover the signer
+    address signer = ecrecover(hashedMessage, _v, _r, _s);
+    return signer
+    }
+    ```
+
+EIP-712 is a standard for typed, structured data signing in Ethereum. It improves upon traditional message signing by:
+
+  1. Enhancing Readability: It structures the data being signed, making it easier for wallets to display the message content to users.
+  2. Improving Security: By specifying the data format explicitly, it reduces the risk of signing unintended or malicious messages.
+
+The signed message combines structured data with version-specific metadata, creating a deterministic hash that uniquely represents the data.
+
+**Key Components of EIP-712 Messages**
+
+The EIP-712 signing process involves the following:
+
+The signed message is composed of three parts:
+
+0x19 0x01 < domainSeparator > <hashStruct(message)>
+
+> TL;DR 0x19 0x01 <hash of who verifies this signature, and what the verifier
+> looks like> <hash of signed structured message, and what the signature looks like>
+
+- 0x19 0x01:
+  - A fixed prefix used in EIP-191 (Ethereum’s basic signing scheme).
+  - Ensures that the signature is interpreted as an EIP-712-compliant structured message and not raw data.
+- < domainSeparator >:
+  - A hash representing the context or domain of the signed message.
+  - It encodes version-specific metadata, such as the application’s name, version, chain ID, and contract address.
+  - Ensures that the signed message is valid only within its intended domain, preventing cross-domain replay attacks.
+  - Structure: Defined as a Solidity struct, typically including:
+
+```solidity
+struct EIP712Domain {
+    string name;           // Name of the dApp
+    string version;        // Version of the dApp
+    uint256 chainId;       // Chain ID (e.g., 1 for Ethereum Mainnet)
+    address verifyingContract; // Contract address interacting with the user
+}
+```
+
+The struct is hashed using the Keccak-256 hash function to produce the domain
+separator:
+
+```solidity
+domainSeparator = keccak256(abi.encode(
+    keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+    keccak256(bytes(name)),
+    keccak256(bytes(version)),
+    chainId,
+    verifyingContract
+));
+```
+
+- <hashStruct(message)>:
+  - A hash of the structured message to be signed.
+  - Encodes the actual data being signed (e.g., transaction details or off-chain instructions).
+  - Ensures that the signing process covers the exact fields and values provided.
+  - The message fields are defined in a Solidity struct, for example:
+
+```solidity
+struct Message {
+    string content;
+    uint256 amount;
+}
+```
+
+The struct is hashed in a similar manner to the domain separator:
+
+```solidity
+hashStruct(message) = keccak256(abi.encode(
+    keccak256("Message(string content,uint256 amount)"),
+    keccak256(bytes(content)),
+    amount
+));
+```
+
+The final hash to be signed is:
+
+```solidity
+keccak256(abi.encodePacked(
+    0x19,
+    0x01,
+    domainSeparator,
+    hashStruct(message)
+));
+```
+
+This hash ensures:
+
+1. Uniqueness: The combination of domain-specific metadata and message content creates a unique identifier for the signed data.
+2. Compatibility: Wallets can parse and display both the domain and the message fields to users for transparency.
+
+### ECDSA Signatures
+
+Elliptic Curve Digital Signature Algorithm
+
+Used to:
+
+- generate key pairs
+- create signatures
+- verify signatures
+
+What are sigantures? (digital fingerprints)
+
+- provide autentication in blockchain tech
+- verify that the message (or txn) originates from the intended sender
+- uses private key to create the signature
+
+Ethereum address is the 20 bytes of the hash of the public key
+
+Secp256k1 curve used in ECDSA (interoperable with Bitcoin)
+
+- symmetrical about the x axis
+- each point on the curve is the `v`,`r`, `s` and is a unique signature
+  - for every x (`r`) coordinate onthe curve there are 2 valid signatures which
+    could lead to replay
+    - How would this effect Ethereum?
+      - Ethreum enforces use of a single signature (`s`) value to one half of
+        the curve
+      - Ethereum txns are signed with a hash of the txn so the signature can't
+        change
+      - Ethereum uses `v` (y coordinate) value
+
+Constants related to the Secp256k1 curve
+
+- Generator Point G:
+  - random point on the curve, constant point on curve
+- Order n:
+  - prime number generated using G, defines the length of the private key
+
+Private key represented as a random integer between 0 and n-1
+
+Public key = p * G
+
+- p is the private key and it's modular multiplcation with G
+
+How are signatures created?
+
+- hash of the message with the private key using the ECDSA algorithm
+  - Generate random number R with nonce (k) times Generator point (R = k*G)
+  - take the x and y coordinate of R
+  - solve for little r with (r = x mod n)
+  - calculate s with 
+s = k^(-1) * (z + r * d) mod n
+    - k^(-1): mod multiplicative inverse of k modulo n
+    - d is the private key
+    - z is the hashed message
+  - output is (r,s)
+
+How is it verified?
+
+- ECDSA verification algorithm takes the:
+  - signed message
+  - signature from the signing algorithm
+  - public key
+
+Outputs boolean if the recovered signer matches the provided public key
+
+> ecrecover precompile does this for you in smart contracts to get the signers
+> address of a message that has been signed using their private key using ECSDA.
+> This allows smart contracts the verify the signature and retrieve the signer
+
+!!! Using ecrecover directly can lead to security issues as signature
+malleability attacks
+
+Cans use OpenZeppelin's ECSDA library to protect against malleability attacks
+
+!!! if the signature is invalid ecrecover will return the 0 address
+
+### Transaction Types
+
+#### ZKsync
+
+1. transaction type 113 (0x71 typed structure data)
+
+- EIP-712
+- enables access to ZKsync features like account abstraction
+- smart contracts must be deployed using a type 113 txn
+- added
+  - `gasPerPubData`: max gas a sender is willing to pay for a single byte of
+    pubdata (L2 state data that is submitted to the L1)
+  - `customSignature`: field for the custom signature for when the signer's
+    account is not an EOA
+  - `paymasterParams`: params for configuring a custom paymaster 
+  - `factory_deps`: contain the bytecode of the smart contract that is being
+    deployed
+  
+2. transaction type 5 (0xff priority txns)
+  
+- L1 -> L2 txns
+
+#### Ethereum and ZKsync
+
+1. transaction type 0 (Legacy txns)
+
+- what we on Foundry with the `--legacy` flag
+- txn format before introduction of transaction types
+
+2. transaction type 1 (0x01 txns)
+
+- addressed contract breakage risks from EIP-2929
+- contains same fields as legacy txns with additional accessList parameter which
+  contains an array of addresses and storage keys
+- gas saving on cross-contract calls by predeclaring the allowed contracts and
+  storage slots
+
+3. transaction type 2 (0x02 txns)
+
+- EIP-1559
+- London Fork
+- handles congestion and high fees
+- replaced `gasPrice` with `baseFee`
+- added
+  - `maxPriorityFeePerGas`: max fee the user is willing to pay
+  - `maxFeePerGas` (`maxPriorityFeePerGas` + `baseFee`): max total fee the
+    sending is willing to pay. How much extra are they willing to pay to have
+    priority plus the base fee
+
+> ZKsync does support type 2 txns, but it does nothing with the maxFee
+> parameters 
+
+4. transaction type 3 (0x03)
+
+- blob txn
+- EIP-4844
+- Dencun Fork
+- scaling solution for rollups
+- added
+  - `max_blob_fee_per_gas`: max fee per gas the sender is willing to pay for the
+    blob gas. Separate market from regular gas, like max extra fee for the blobs
+  - `blob_versioned_hashes`: list of the versioned blobbed hashes associated
+    with the txns blobs
+- blob fee is deducted and burned before it's executed so failed txns are not refundable
+
+## Account Abstraction
+
+### Introduction
+
+With EOA you need to sign txns with pk, with AA you can sign with ANYTHING
+(Google account, Github account, etc.)
+
+How does AA work on:
+
+1. Ethereum (EntryPoint.sol)
+
+- deploy a smart contract that defines "what" can sign txns
+- to send a txn, you send a "UserOp" (user operation) to an Alt Mempool (**happens
+  off-chain**)
+  - UserOp has additional txn information
+- Alt-mempool takes the UserOp, validate it, and then send the txn on-chain to
+  `EntryPoint.sol`
+- `EntryPoint.sol` does more validation and then routed to your smart contract
+  account so that your account will be the `msg.sender`
+  - `EntryPoint.sol` has some "add-ons"
+    - Signature Aggregator: can define a group of signatures that need to be
+      aggregated
+    - Pay Master: pay for transactions based on logic setup in your smart
+      contract account
+
+2. ZKsync (Native)
+
+- deploy a smart contract where rules are codified (same as Ethereum)
+- No Alt-mempool nodes, goes directly to main mempool
+- No `EntryPoint.sol` everything goes straight to your contract
+  - This will have the same "add-ons" of Signature Aggregator and Paymaster
+
+### ZKsync Setup
+
+All accounts on ZKsync Era are smart contract wallets. `DefaultAccount.sol` is
+used 
+
+- every account even EOAs follow the `IAccount` Interface that includes:
+  - `validateTransaction`: ZKsync equivalent to Ethereum `validateUserOp`because
+    all txns are txns on ZKsync
+    - send a `_txHash`, `_suggestedSignedHash`, and `_transaction` (the actual
+      txn itself)
+    >the hyphen (_) before the variable indicates that it's a function input and
+    >not a state variable
+    - the bootloader handles the `_txHash` and `_suggestedSignedHash` inputs
+  - `executeTransaction`
+    - executes txn
+      - can execute a txn with an owner by without going through AA proxy, call directly
+  - `executeTransactionFromOutside`
+    - someone else can send your signed tx for you to execute the txn
+  - `payForTransaction`
+    - who is going to pay for the txn
+  - `prepareForPaymaster`
+    - gets called before you actualy pay a paymaster
+
+### Iaccount
+
+`MemoryTransactionHelper.sol` helps with the convertions of memory and calldata
+to just work with memory.
+
+- inside is the `Transaction` struct that represents a txn on ZKsync (includes
+  things such as txn type, gas information, paymaster, factoryDeps, etc.)
+  - outside of tutoria comees from `TransactionHelper.sol`
+
+Can think of `magic` as a type of true or false
+
+- the value that should be equal to the signature of this function if the user
+  agrees to proceed with the txn
+  >if we want it `validateTransaction` to return true
+
+  > ```solidity
+  >   return IAccount.validateTransaction.selector
+  > ```
+
+### Type 113 Lifecycle
+
+#### Phase 1 Validation
+
+1. User sends the txn to the "ZKsync API client" (sort of a light node)
+2. ZKsync API client checks to see the nonce is unique by querying the
+   NonceHolder system contract
+3. ZKsync API client calls validateTransaction, which MUST update the nonce
+
+> whenever you send a type 113 (0x71) txn the msg.sender is the bootloader
+> system contract. Think of it as the entryPoint smart contract on Ethereum in
+> regards to AA
+
+4. ZKSync API client checks that the nonce was updated
+5. ZKsync API client calls payForTransaction, or prepareForPaymster &
+   validateAndPayForPaymasterTransaction (check to make sure there is enough
+   money to pay for the txn)
+6. ZKsync API client verifies that the bootloader gets paid (user is sending
+   funds to the bootloader so that bootloader can pay to execute the txn)
+
+> Validation gets done by the "light node" in order to prevent the main node
+> from getting stuck validating txns and DNS attacks
+
+#### Phase 2 Execution
+
+7. ZKsync API client passes the validated txn to the main node / sequencer
+   (currently centralized)
+8. Main node calls executeTransaction
+9. If a paymaster was used, the postTransaction is called
